@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model WhatsAppAccount {
+  id              String   @id @default(uuid())
+  name            String
+  phoneNumber     String
+  phoneNumberId   String   @unique
+  wabaId          String
+  accessToken     String
+  appSecret       String
+  verifyToken     String
+  chatwootInboxId String?
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  destinations AccountDestination[]
+  messages     Message[]
+
+  @@map("whatsapp_accounts")
+}
+
+model WebhookDestination {
+  id        String   @id @default(uuid())
+  name      String
+  url       String
+  headers   Json     @default("{}")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accounts AccountDestination[]
+  attempts DeliveryAttempt[]
+
+  @@map("webhook_destinations")
+}
+
+model AccountDestination {
+  id            String   @id @default(uuid())
+  accountId     String
+  destinationId String
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  account     WhatsAppAccount    @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  destination WebhookDestination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, destinationId])
+  @@map("account_destinations")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  accountId      String
+  direction      String
+  waMessageId    String?  @unique
+  fromNumber     String?
+  toNumber       String?
+  type           String
+  content        Json
+  mediaLocalPath String?
+  mediaUrl       String?
+  status         String   @default("received")
+  rawPayload     Json
+  createdAt      DateTime @default(now())
+
+  account          WhatsAppAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  deliveryAttempts DeliveryAttempt[]
+
+  @@index([accountId, createdAt])
+  @@index([status])
+  @@map("messages")
+}
+
+model DeliveryAttempt {
+  id            String    @id @default(uuid())
+  messageId     String
+  destinationId String
+  attemptNumber Int       @default(1)
+  status        String
+  statusCode    Int?
+  responseBody  String?
+  errorMessage  String?
+  nextRetryAt   DateTime?
+  createdAt     DateTime  @default(now())
+
+  message     Message            @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  destination WebhookDestination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextRetryAt])
+  @@index([messageId])
+  @@map("delivery_attempts")
+}
