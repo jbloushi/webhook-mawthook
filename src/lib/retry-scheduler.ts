@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { deliverToDestination } from "./delivery";
-import { RETRY_POLL_INTERVAL_MS } from "./constants";
+import { RETRY_CLAIM_LEASE_MS, RETRY_POLL_INTERVAL_MS } from "./constants";
 
 let schedulerRunning = false;
 
@@ -36,11 +36,19 @@ async function processRetries(): Promise<void> {
 
   await Promise.allSettled(
     pendingRetries.map(async (attempt) => {
+      const now = new Date();
+      const leaseUntil = new Date(now.getTime() + RETRY_CLAIM_LEASE_MS);
+
       // Claim retry first to avoid duplicate delivery from overlapping scheduler ticks
-      // or multiple app instances.
+      // or multiple app instances. Lease-based claiming also self-recovers if
+      // a process crashes before delivery finishes.
       const claimed = await prisma.deliveryAttempt.updateMany({
-        where: { id: attempt.id, status: "retrying" },
-        data: { status: "pending", nextRetryAt: null },
+        where: {
+          id: attempt.id,
+          status: "retrying",
+          nextRetryAt: { lte: now },
+        },
+        data: { nextRetryAt: leaseUntil },
       });
 
       if (claimed.count === 0) return;

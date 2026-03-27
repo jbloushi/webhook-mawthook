@@ -4,6 +4,7 @@ import { decrypt } from "@/lib/encryption";
 import { verifyMetaSignature } from "@/lib/webhook-signature";
 import { downloadAndStoreMedia } from "@/lib/media";
 import { fanOutToDestinations } from "@/lib/delivery";
+import { Prisma } from "@prisma/client";
 
 // Meta webhook verification (GET)
 export async function GET(
@@ -154,17 +155,14 @@ async function processIncomingMessage(account: any, msg: any, rawPayload: any) {
       },
     });
 
-    // Don't block webhook processing on downstream destination latency.
-    void fanOutToDestinations(message.id, account.id, rawPayload).catch((err) => {
-      console.error("[Webhook] Fan-out error:", err);
-    });
+    // Fan-out returns quickly (attempt creation + background dispatch)
+    // and avoids blocking on downstream endpoint latency.
+    await fanOutToDestinations(message.id, account.id, rawPayload);
   } catch (err) {
     // Ignore duplicate message inserts (Meta may retry delivery).
     if (
-      err &&
-      typeof err === "object" &&
-      "code" in err &&
-      (err as { code?: string }).code === "P2002"
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === "P2002"
     ) {
       return;
     }
