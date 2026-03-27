@@ -6,6 +6,7 @@ export async function GET() {
     select: {
       id: true,
       name: true,
+      type: true,
       url: true,
       headers: true,
       active: true,
@@ -21,7 +22,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, url, headers, active } = await request.json();
+    const { name, type, url, headers, active } = await request.json();
 
     if (!name || !url) {
       return NextResponse.json(
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const destination = await prisma.webhookDestination.create({
-      data: { name, url, headers: headers || {}, active: active ?? true },
+      data: { name, type: type || "custom", url, headers: headers || {}, active: active ?? true },
     });
 
     return NextResponse.json({ destination }, { status: 201 });

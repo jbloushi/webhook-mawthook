@@ -1,10 +1,10 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -41,6 +41,7 @@ model WhatsAppAccount {
 model WebhookDestination {
   id        String   @id @default(uuid())
   name      String
+  type      String   @default("custom")
   url       String
   headers   Json     @default("{}")
   active    Boolean  @default(true)

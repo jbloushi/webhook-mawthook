@@ -5,9 +5,19 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Plus, X } from "lucide-react";
 
+const DESTINATION_TYPES = [
+  { value: "chatwoot", label: "Chatwoot" },
+  { value: "n8n", label: "n8n" },
+  { value: "zapier", label: "Zapier" },
+  { value: "make", label: "Make" },
+  { value: "custom", label: "Custom Webhook" },
+  { value: "other", label: "Other" },
+];
+
 export default function NewDestinationPage() {
   const router = useRouter();
   const [name, setName] = useState("");
+  const [type, setType] = useState("custom");
   const [url, setUrl] = useState("");
   const [headers, setHeaders] = useState<{ key: string; value: string }[]>([]);
   const [error, setError] = useState("");
@@ -45,7 +55,7 @@ export default function NewDestinationPage() {
       const res = await fetch("/api/destinations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, url, headers: headerObj }),
+        body: JSON.stringify({ name, type, url, headers: headerObj }),
       });
 
       const data = await res.json();
@@ -96,6 +106,23 @@ export default function NewDestinationPage() {
             required
             className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Type
+          </label>
+          <select
+            value={type}
+            onChange={(e) => setType(e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
+          >
+            {DESTINATION_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div>

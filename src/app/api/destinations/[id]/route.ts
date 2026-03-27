@@ -30,6 +30,7 @@ export async function PUT(
 
   const updateData: Record<string, unknown> = {};
   if (body.name !== undefined) updateData.name = body.name;
+  if (body.type !== undefined) updateData.type = body.type;
   if (body.url !== undefined) updateData.url = body.url;
   if (body.headers !== undefined) updateData.headers = body.headers;
   if (body.active !== undefined) updateData.active = body.active;
