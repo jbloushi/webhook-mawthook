@@ -30,8 +30,12 @@ export async function fanOutToDestinations(
     )
   );
 
-  // Fire all deliveries concurrently
-  await Promise.allSettled(
+  // Ensure retry scheduler is running
+  initRetryScheduler();
+
+  // Fire all deliveries concurrently in background so webhook ingestion
+  // is not blocked by downstream latency.
+  void Promise.allSettled(
     attempts.map((attempt, idx) =>
       deliverToDestination(
         attempt.id,
@@ -41,9 +45,6 @@ export async function fanOutToDestinations(
       )
     )
   );
-
-  // Ensure retry scheduler is running
-  initRetryScheduler();
 }
 
 export async function deliverToDestination(
