@@ -35,13 +35,22 @@ async function processRetries(): Promise<void> {
   if (pendingRetries.length === 0) return;
 
   await Promise.allSettled(
-    pendingRetries.map((attempt) =>
-      deliverToDestination(
+    pendingRetries.map(async (attempt) => {
+      // Claim retry first to avoid duplicate delivery from overlapping scheduler ticks
+      // or multiple app instances.
+      const claimed = await prisma.deliveryAttempt.updateMany({
+        where: { id: attempt.id, status: "retrying" },
+        data: { status: "pending", nextRetryAt: null },
+      });
+
+      if (claimed.count === 0) return;
+
+      return deliverToDestination(
         attempt.id,
         attempt.destination.url,
         attempt.destination.headers as Record<string, string>,
         attempt.message.rawPayload as object
-      )
-    )
+      );
+    })
   );
 }

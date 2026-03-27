@@ -63,7 +63,12 @@ export async function POST(
     return new NextResponse("Invalid signature", { status: 401 });
   }
 
-  const payload = JSON.parse(rawBody);
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return new NextResponse("Invalid JSON", { status: 400 });
+  }
 
   // Process in background, return 200 immediately
   processWebhookPayload(account, payload).catch((err) => {
@@ -86,21 +91,21 @@ async function processWebhookPayload(account: any, payload: any) {
 
       // Handle incoming messages
       const messages = value.messages || [];
-      for (const msg of messages) {
-        await processIncomingMessage(account, msg, payload);
-      }
+      await runWithConcurrency(messages, 8, (msg) =>
+        processIncomingMessage(account, msg, payload)
+      );
 
       // Handle status updates
       const statuses = value.statuses || [];
-      for (const status of statuses) {
-        await processStatusUpdate(status);
-      }
+      await runWithConcurrency(statuses, 16, processStatusUpdate);
     }
   }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function processIncomingMessage(account: any, msg: any, rawPayload: any) {
+  if (!msg?.id) return;
+
   const accessToken = decrypt(account.accessToken);
 
   let mediaLocalPath: string | null = null;
@@ -132,24 +137,39 @@ async function processIncomingMessage(account: any, msg: any, rawPayload: any) {
     content = { raw: msg };
   }
 
-  const message = await prisma.message.create({
-    data: {
-      accountId: account.id,
-      direction: "inbound",
-      waMessageId: msg.id,
-      fromNumber: msg.from,
-      toNumber: account.phoneNumber.replace(/[^\d]/g, ""),
-      type: msg.type,
-      content,
-      mediaLocalPath,
-      mediaUrl,
-      status: "received",
-      rawPayload,
-    },
-  });
+  try {
+    const message = await prisma.message.create({
+      data: {
+        accountId: account.id,
+        direction: "inbound",
+        waMessageId: msg.id,
+        fromNumber: msg.from,
+        toNumber: account.phoneNumber.replace(/[^\d]/g, ""),
+        type: msg.type,
+        content,
+        mediaLocalPath,
+        mediaUrl,
+        status: "received",
+        rawPayload,
+      },
+    });
 
-  // Fan out to destinations
-  await fanOutToDestinations(message.id, account.id, rawPayload);
+    // Don't block webhook processing on downstream destination latency.
+    void fanOutToDestinations(message.id, account.id, rawPayload).catch((err) => {
+      console.error("[Webhook] Fan-out error:", err);
+    });
+  } catch (err) {
+    // Ignore duplicate message inserts (Meta may retry delivery).
+    if (
+      err &&
+      typeof err === "object" &&
+      "code" in err &&
+      (err as { code?: string }).code === "P2002"
+    ) {
+      return;
+    }
+    throw err;
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -174,4 +194,25 @@ async function processStatusUpdate(status: any) {
     .catch(() => {
       // Message might not exist yet (status for outbound)
     });
+}
+
+async function runWithConcurrency<T>(
+  items: T[],
+  limit: number,
+  task: (item: T) => Promise<void>
+): Promise<void> {
+  if (!Array.isArray(items) || items.length === 0) return;
+  const normalizedLimit = Math.max(1, limit);
+  let index = 0;
+
+  const workers = Array.from({
+    length: Math.min(normalizedLimit, items.length),
+  }).map(async () => {
+    while (index < items.length) {
+      const current = items[index++];
+      await task(current);
+    }
+  });
+
+  await Promise.allSettled(workers);
 }
