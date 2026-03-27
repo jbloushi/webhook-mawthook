@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.claude
+uploads
+cloudflared.exe
+*.md
+.env
+.env.local
