@@ -1,169 +1,20 @@
-╔════════════════════════════════════════════════════════════════════════════╗
-║                   MAWTHOOK DEPLOYMENT SUMMARY                              ║
-║              WhatsApp Webhook Middleware — Production Ready                 ║
-╚════════════════════════════════════════════════════════════════════════════╝
+MAWTHOOK DEPLOYMENT SUMMARY (UPDATED)
+====================================
 
-AUDIT STATUS: ✅ PASSED
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Status: Ready for native VPS deployment (no Docker required)
 
-Code Review:
-  ✅ Webhook ingestion optimizations (bounded concurrency, non-blocking fan-out)
-  ✅ Retry scheduler de-duplication (atomic claiming, lease-based recovery)
-  ✅ Database schema & migrations (6 models, proper constraints & indexes)
-  ✅ Security: HMAC-SHA256, AES-256-GCM encryption, JWT auth
-  ✅ Docker build: Alpine-based, multi-stage, 328 MB final image
+Primary guide:
+- DEPLOY.md (Node.js + PostgreSQL + systemd + aaPanel reverse proxy)
 
-Build & Test:
-  ✅ npm audit: 9 dev-dependency vulns (eslint tree, no runtime impact)
-  ✅ Docker build: Successful (~30 seconds with cache)
-  ✅ Migrations: Applied (2/2)
-  ✅ API tests: All routes responsive
-  ✅ Admin user: Seeded successfully
+Required working path:
+- cd /www/wwwroot/webhook-mawthook
 
-Risk Assessment:
-  ✅ Race conditions: ELIMINATED (atomic claiming)
-  ✅ Memory exhaustion: MITIGATED (bounded concurrency)
-  ✅ Duplicate processing: ELIMINATED (P2002 guard)
-  ✅ Token security: SECURE (AES-256-GCM)
-  ✅ Signature verification: SECURE (timing-safe)
+Core setup commands:
+- npm ci
+- npm run prisma:migrate:deploy
+- npm run build
+- ADMIN_EMAIL=admin@yourdomain.com ADMIN_PASSWORD='StrongPass!ChangeMe' npm run prisma:seed
+- sudo systemctl restart mawthook
 
-DEPLOYMENT READINESS: ✅ YES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Latest Code on GitHub:
-  Branch:  master
-  Latest:  7565b08 (docs: add comprehensive production deployment guide...)
-  URL:     https://github.com/jbloushi/webhook-mawthook
-
-Required Files to Deploy:
-  ✅ AUDIT.md                         — Code review & security assessment
-  ✅ PRODUCTION_DEPLOYMENT.md         — Step-by-step VPS + aaPanel guide
-  ✅ DEPLOY.md                        — Original deployment documentation
-  ✅ README.md                        — Project overview
-  ✅ Dockerfile                       — Multi-stage Alpine build
-  ✅ docker-compose.yml               — PostgreSQL 16 + app services
-  ✅ .env.example                     — Configuration template
-  ✅ prisma/schema.prisma             — Database schema
-  ✅ prisma/migrations/               — Database migrations (2 versions)
-  ✅ All source code                  — src/ directory (52 files)
-
-NEXT STEPS FOR DEPLOYMENT
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-1. SSH into your VPS and run:
-   $ cd /www/wwwroot
-   $ git clone https://github.com/jbloushi/webhook-mawthook.git
-   $ cd webhook-mawthook
-
-2. Follow PRODUCTION_DEPLOYMENT.md step-by-step:
-   - Generate secrets (ENCRYPTION_KEY, JWT_SECRET, DB_PASSWORD)
-   - Create .env file with your production values
-   - `docker compose up -d`
-   - Create admin user: `docker compose exec app node prisma/seed.mjs`
-   - Configure aaPanel reverse proxy + SSL
-   - Update Meta webhook URL
-   - Update Chatwoot webhook URL
-   - Test end-to-end (send/receive WhatsApp messages)
-
-3. Monitor:
-   - Check logs: `docker compose logs -f app`
-   - Backup database daily
-   - Update code: `git pull origin master && docker compose up -d --build`
-
-CURRENT LOCAL STATE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Local Testing:
-  ✅ Docker containers running: app (3000), db (5432)
-  ✅ Migrations applied
-  ✅ Admin user created (admin@mawthook.com / changeme123)
-  ✅ API endpoints responding
-  ✅ ngrok tunnel available (if still running)
-
-Ready to move to: PRODUCTION VPS
-
-IMPORTANT REMINDERS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚠️  SECRETS
-    - Generate new ENCRYPTION_KEY and JWT_SECRET for production
-    - Never reuse local secrets
-    - Save .env in a secure location (encrypted backup)
-    - If secrets are lost, you'll need to regenerate all tokens
-
-⚠️  DNS
-    - Point webhook.mawthook.io to your VPS IP
-    - Ensure DNS is live before running Let's Encrypt
-
-⚠️  FIREWALL
-    - Allow ports 80, 443 (aaPanel reverse proxy)
-    - Block port 5432 (PostgreSQL) externally
-    - Restrict port 7800 (aaPanel) to your IP
-
-⚠️  MONITORING
-    - Set up log monitoring (check app logs daily)
-    - Automate database backups
-    - Test backup restore procedure
-
-⚠️  SECURITY BEST PRACTICES
-    - Change default admin password immediately after login
-    - Use strong database password
-    - Enable HTTPS only (let aaPanel handle Let's Encrypt)
-    - Monitor webhook delivery failures (check /api/messages for failed statuses)
-
-QUICK REFERENCE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Dashboard URL:          https://webhook.mawthook.io
-Default login:          admin@mawthook.com / changeme123
-
-Webhook URL (Meta):     https://webhook.mawthook.io/api/webhook/<account-id>
-Chatwoot webhook:       https://webhook.mawthook.io/api/chatwoot/webhook?secret=...
-
-Git Repository:         https://github.com/jbloushi/webhook-mawthook
-Latest branch:          master
-Commit (Deployment):    7565b08
-
-Docker commands:
-  Start:                docker compose up -d
-  Stop:                 docker compose down
-  Logs:                 docker compose logs -f
-  Restart:              docker compose restart
-  Rebuild:              docker compose up -d --build
-
-Database:
-  Host:                 db (internal, port 5432)
-  User:                 mawthook
-  DB Name:              mawthook
-  Backup:               docker compose exec db pg_dump -U mawthook mawthook > backup.sql
-
-DOCUMENTATION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Inside Repository:
-  📄 README.md                    — Project overview & features
-  📄 DEPLOY.md                    — Original deployment guide
-  📄 AUDIT.md                     — Security & code review (345 lines)
-  📄 PRODUCTION_DEPLOYMENT.md     — Detailed VPS + aaPanel guide (400 lines)
-
-GitHub:
-  🔗 https://github.com/jbloushi/webhook-mawthook
-  🔗 https://github.com/jbloushi/webhook-mawthook/tree/master
-
-STATUS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✅ Code Audit:        COMPLETE
-✅ Local Testing:     COMPLETE
-✅ Documentation:     COMPLETE
-✅ Production Ready:  YES
-
-🚀 Ready to Deploy to VPS + aaPanel
-
-Questions? Refer to PRODUCTION_DEPLOYMENT.md or AUDIT.md
-
-────────────────────────────────────────────────────────────────────────────────
-Generated: 2026-03-27
-Audited by: Claude
-Status: PRODUCTION READY FOR DEPLOYMENT
-────────────────────────────────────────────────────────────────────────────────
+Health check:
+- GET /api/health
