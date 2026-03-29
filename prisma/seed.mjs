@@ -9,10 +9,18 @@
  *   docker compose exec app node prisma/seed.mjs
  */
 
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
+
+
+if (!process.env.DATABASE_URL) {
+  console.error("❌ Missing DATABASE_URL. Create/update .env before running seed.");
+  console.error('   Example: DATABASE_URL="postgresql://mawthook:password@127.0.0.1:5432/mawthook?schema=public"');
+  process.exit(1);
+}
 
 async function main() {
   const userCount = await prisma.user.count();
