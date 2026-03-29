@@ -50,7 +50,7 @@ nano .env
 ```
 
 Set at minimum:
-- `DATABASE_URL` (URL-encode special chars in DB password, e.g. `@` -> `%40`)
+- `DATABASE_URL`
 - `ENCRYPTION_KEY` (`openssl rand -hex 32`)
 - `JWT_SECRET` (`openssl rand -hex 32`)
 - `APP_URL` (use `http://localhost:3000` locally)
@@ -61,7 +61,6 @@ Set at minimum:
 ```bash
 cd ~/projects/webhook-mawthook
 npm run prisma:migrate:deploy
-grep "^DATABASE_URL=" .env
 ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='ChangeMeNow123!' npm run prisma:seed
 npm run dev
 ```

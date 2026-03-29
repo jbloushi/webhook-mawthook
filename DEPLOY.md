@@ -56,18 +56,12 @@ APP_URL="https://webhook.yourdomain.com"
 CHATWOOT_WEBHOOK_SECRET="<random-secret>"
 ```
 
-Important:
-- If DB password includes special characters (like `@`), URL-encode it in `DATABASE_URL`.
-- Example password `blue@123KDD` becomes `blue%40123KDD` inside `DATABASE_URL`.
-
 ### 5) Build database + app
 
 ```bash
 cd /www/wwwroot/webhook-mawthook
 npm run prisma:migrate:deploy
 npm run build
-grep "^DATABASE_URL=" .env
-node -e 'require("dotenv").config(); console.log(process.env.DATABASE_URL ? "DATABASE_URL loaded" : "DATABASE_URL missing")'
 ```
 
 ### 6) Seed admin user
@@ -145,8 +139,6 @@ git pull origin main
 npm ci
 npm run prisma:migrate:deploy
 npm run build
-grep "^DATABASE_URL=" .env
-node -e 'require("dotenv").config(); console.log(process.env.DATABASE_URL ? "DATABASE_URL loaded" : "DATABASE_URL missing")'
 sudo systemctl restart mawthook
 sudo systemctl status mawthook --no-pager
 curl https://webhook.yourdomain.com/api/health
@@ -154,18 +146,7 @@ curl https://webhook.yourdomain.com/api/health
 
 ## Troubleshooting
 
-Common issues:
-- `P1000 authentication failed`: your DB password in `DATABASE_URL` is wrong or not URL-encoded.
-- `Environment variable not found: DATABASE_URL`: `.env` is missing/empty or you are running commands outside the project path.
-
 ```bash
-# Ensure env exists in project root
-cd /www/wwwroot/webhook-mawthook
-ls -la .env
-
-# Validate DB login directly
-psql "postgresql://mawthook:YOUR_PASSWORD@127.0.0.1:5432/mawthook" -c "select 1;"
-
 # App logs
 journalctl -u mawthook -f
 

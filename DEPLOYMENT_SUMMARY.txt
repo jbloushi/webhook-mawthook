@@ -18,6 +18,3 @@ Core setup commands:
 
 Health check:
 - GET /api/health
-
-Important:
-- URL-encode special characters in DB password inside DATABASE_URL (e.g. @ -> %40).

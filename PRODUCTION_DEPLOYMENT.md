@@ -16,10 +16,8 @@ cp .env.example .env
 nano .env
 
 # 3) prepare db and app
-# if password has @, encode in DATABASE_URL as %40
 npm run prisma:migrate:deploy
 npm run build
-grep "^DATABASE_URL=" .env
 
 # 4) seed first admin
 ADMIN_EMAIL=admin@yourdomain.com ADMIN_PASSWORD='StrongPass!ChangeMe' npm run prisma:seed
