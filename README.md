@@ -2,127 +2,87 @@
 
 Middleware that sits between the **Meta WhatsApp Cloud API** and your downstream services (Chatwoot, custom webhooks, Slack, etc.). It receives incoming WhatsApp messages, stores them, and fans out to configured destinations with per-number routing and automatic retries.
 
-```
-Meta WhatsApp Cloud API
-        │
-        ▼
-  POST /api/webhook/[accountId]      ◄── configured in Meta Developer Console
-        │
-        ├─ verify HMAC-SHA256 signature
-        ├─ parse & store messages
-        ├─ download media → uploads/
-        └─ fan out to destinations
-              ├─ Chatwoot
-              ├─ Custom webhook
-              └─ (retry on failure, exponential backoff ×5)
-
-Chatwoot agent replies:
-  POST /api/chatwoot/webhook → parse → Meta Send Message API → WhatsApp
-```
-
 ## Features
 
-- **Multi-number support** — manage multiple WhatsApp Business numbers from one dashboard
-- **Destination routing** — each number routes to its own set of webhook destinations
-- **Destination types** — Chatwoot, Custom, Slack (easily extensible)
-- **Automatic retries** — failed deliveries retry with exponential backoff (5 attempts)
-- **Chatwoot bidirectional** — inbound messages forwarded in; agent replies sent back to WhatsApp
-- **Media handling** — auto-downloads images/audio/video/documents from WhatsApp
-- **Dashboard** — manage accounts, destinations, view message logs and delivery analytics
-- **Auth** — email/password login with JWT sessions
-- **Docker-ready** — single `docker compose up` deploys everything
+- Multi-number WhatsApp account support
+- Destination routing (Chatwoot, custom webhook, Slack-ready)
+- Retry engine with exponential backoff
+- Chatwoot bidirectional sync
+- Media download and local serving
+- Dashboard for accounts, destinations, messages, and analytics
+- JWT session auth
 
-## Tech Stack
+## Requirements (No Docker)
 
-| Layer      | Technology |
-|------------|------------|
-| Framework  | Next.js (App Router, TypeScript) |
-| Database   | PostgreSQL 16 + Prisma ORM |
-| Auth       | bcrypt + JWT (jose for Edge middleware) |
-| UI         | Tailwind CSS + Recharts + Lucide icons |
-| Deployment | Docker Compose |
+- Node.js 20+
+- npm 10+
+- PostgreSQL 16+ (native service install)
 
-## Quick Start (local development)
+## Full Local Setup (No Docker)
+
+### 1) Clone + install
 
 ```bash
-# 1. Clone
+cd ~/projects
 git clone https://github.com/jbloushi/webhook-mawthook.git
-cd webhook-mawthook
-
-# 2. Install dependencies
+cd ~/projects/webhook-mawthook
 npm install
-
-# 3. Configure environment
 cp .env.example .env
-# Edit .env with your values (see .env.example for descriptions)
+```
 
-# 4. Start PostgreSQL (using Docker)
-docker compose up db -d
+### 2) Create PostgreSQL DB + user
 
-# 5. Run migrations
-npx prisma migrate deploy
+```bash
+sudo -u postgres psql
+```
 
-# 6. Seed admin user
-node prisma/seed.mjs
+```sql
+CREATE USER mawthook WITH PASSWORD 'CHANGE_ME';
+CREATE DATABASE mawthook OWNER mawthook;
+\q
+```
 
-# 7. Start dev server
+### 3) Configure environment
+
+```bash
+cd ~/projects/webhook-mawthook
+nano .env
+```
+
+Set at minimum:
+- `DATABASE_URL`
+- `ENCRYPTION_KEY` (`openssl rand -hex 32`)
+- `JWT_SECRET` (`openssl rand -hex 32`)
+- `APP_URL` (use `http://localhost:3000` locally)
+- `CHATWOOT_WEBHOOK_SECRET`
+
+### 4) Migrate + seed admin + run
+
+```bash
+cd ~/projects/webhook-mawthook
+npm run prisma:migrate:deploy
+ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='ChangeMeNow123!' npm run prisma:seed
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and log in.
+Open `http://localhost:3000` and log in with the seeded admin credentials.
 
-## Production Deployment
+## Production (VPS + aaPanel, No Docker)
 
-See **[DEPLOY.md](./DEPLOY.md)** for the full guide covering:
+Use **[DEPLOY.md](./DEPLOY.md)** for the full VPS runbook, including:
+- exact `cd` paths
+- install commands
+- systemd service config
+- admin seed commands
+- update/redeploy commands
 
-- Docker Compose deployment on VPS
-- aaPanel reverse proxy + SSL setup
-- Meta WhatsApp webhook configuration
-- Chatwoot integration
-- Database backup/restore
-- Troubleshooting
+## Useful Scripts
 
-## Project Structure
-
+```bash
+npm run lint
+npm run typecheck
+npm run build
+npm run prisma:generate
+npm run prisma:migrate:deploy
+npm run prisma:seed
 ```
-src/
-  middleware.ts                      # JWT auth (Edge)
-  lib/
-    prisma.ts                        # Prisma singleton
-    encryption.ts                    # AES-256-GCM for stored tokens
-    auth.ts                          # bcrypt + JWT helpers
-    webhook-signature.ts             # Meta HMAC-SHA256 verification
-    meta-api.ts                      # WhatsApp send message API
-    media.ts                         # Download + store media
-    delivery.ts                      # Fan-out + retry engine
-    chatwoot.ts                      # Chatwoot webhook handler
-  app/
-    api/
-      auth/                          # Login, register, session
-      webhook/[accountId]/           # Meta webhook endpoint
-      chatwoot/webhook/              # Chatwoot outbound replies
-      accounts/                      # WhatsApp account CRUD
-      destinations/                  # Destination CRUD
-      analytics/                     # Stats aggregations
-      media/[...path]/               # Serve stored media
-    (dashboard)/dashboard/           # Dashboard pages
-prisma/
-  schema.prisma                      # Database schema (6 models)
-  migrations/                        # Auto-applied on deploy
-  seed.mjs                           # Initial admin user
-```
-
-## Environment Variables
-
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `DB_PASSWORD` | Yes | PostgreSQL password (used by docker-compose) |
-| `ENCRYPTION_KEY` | Yes | 32-byte hex key for AES-256-GCM (`openssl rand -hex 32`) |
-| `JWT_SECRET` | Yes | Secret for signing JWT tokens (`openssl rand -hex 32`) |
-| `APP_URL` | Yes | Public URL, e.g. `https://webhook.yourdomain.com` |
-| `CHATWOOT_WEBHOOK_SECRET` | Yes | Shared secret for Chatwoot webhook authentication |
-
-## License
-
-Private — Mawthook.
