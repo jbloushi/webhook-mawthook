@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { encrypt, decrypt } from "@/lib/encryption";
 
 export async function GET(
   _request: NextRequest,
@@ -18,7 +19,13 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ destination });
+  return NextResponse.json({
+    destination: {
+      ...destination,
+      url: decrypt(destination.url),
+      headers: JSON.parse(decrypt(destination.headers)),
+    },
+  });
 }
 
 export async function PUT(
@@ -31,8 +38,8 @@ export async function PUT(
   const updateData: Record<string, unknown> = {};
   if (body.name !== undefined) updateData.name = body.name;
   if (body.type !== undefined) updateData.type = body.type;
-  if (body.url !== undefined) updateData.url = body.url;
-  if (body.headers !== undefined) updateData.headers = body.headers;
+  if (body.url !== undefined) updateData.url = encrypt(body.url);
+  if (body.headers !== undefined) updateData.headers = encrypt(JSON.stringify(body.headers));
   if (body.active !== undefined) updateData.active = body.active;
 
   try {
@@ -40,7 +47,13 @@ export async function PUT(
       where: { id },
       data: updateData,
     });
-    return NextResponse.json({ destination });
+    return NextResponse.json({
+      destination: {
+        ...destination,
+        url: body.url !== undefined ? body.url : decrypt(destination.url),
+        headers: body.headers !== undefined ? body.headers : JSON.parse(decrypt(destination.headers)),
+      },
+    });
   } catch {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

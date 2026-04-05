@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { decrypt } from "./encryption";
 import { deliverToDestination } from "./delivery";
 import { RETRY_CLAIM_LEASE_MS, RETRY_POLL_INTERVAL_MS } from "./constants";
 
@@ -55,8 +56,8 @@ async function processRetries(): Promise<void> {
 
       return deliverToDestination(
         attempt.id,
-        attempt.destination.url,
-        attempt.destination.headers as Record<string, string>,
+        decrypt(attempt.destination.url),
+        JSON.parse(decrypt(attempt.destination.headers)) as Record<string, string>,
         attempt.message.rawPayload as object
       );
     })

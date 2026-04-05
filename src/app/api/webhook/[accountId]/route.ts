@@ -29,7 +29,7 @@ export async function GET(
     return new NextResponse("Account not found", { status: 404 });
   }
 
-  if (mode === "subscribe" && verifyToken === account.verifyToken) {
+  if (mode === "subscribe" && verifyToken === decrypt(account.verifyToken)) {
     console.log(`[Webhook] Verified account ${account.name}`);
     return new NextResponse(challenge, { status: 200 });
   }

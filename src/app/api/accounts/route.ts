@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { encrypt } from "@/lib/encryption";
+import { encrypt, decrypt } from "@/lib/encryption";
 import { v4 as uuidv4 } from "uuid";
 
 export async function GET() {
@@ -21,7 +21,9 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ accounts });
+  return NextResponse.json({
+    accounts: accounts.map((a) => ({ ...a, verifyToken: decrypt(a.verifyToken) })),
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
         wabaId,
         accessToken: encrypt(accessToken),
         appSecret: encrypt(appSecret),
-        verifyToken: uuidv4(),
+        verifyToken: encrypt(uuidv4()),
         chatwootInboxId: chatwootInboxId || null,
       },
     });
@@ -65,7 +67,7 @@ export async function POST(request: NextRequest) {
         name: account.name,
         phoneNumber: account.phoneNumber,
         phoneNumberId: account.phoneNumberId,
-        verifyToken: account.verifyToken,
+        verifyToken: decrypt(account.verifyToken),
         webhookUrl: `${appUrl}/api/webhook/${account.id}`,
       },
     }, { status: 201 });

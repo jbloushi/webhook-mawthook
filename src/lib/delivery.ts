@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { decrypt } from "./encryption";
 import { DELIVERY_TIMEOUT_MS, MAX_RETRIES, getRetryDelay } from "./constants";
 import { initRetryScheduler } from "./retry-scheduler";
 
@@ -39,8 +40,8 @@ export async function fanOutToDestinations(
     attempts.map((attempt, idx) =>
       deliverToDestination(
         attempt.id,
-        activeDestinations[idx].destination.url,
-        activeDestinations[idx].destination.headers as Record<string, string>,
+        decrypt(activeDestinations[idx].destination.url),
+        JSON.parse(decrypt(activeDestinations[idx].destination.headers)) as Record<string, string>,
         rawPayload
       )
     )

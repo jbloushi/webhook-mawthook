@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { encrypt, decrypt } from "@/lib/encryption";
 
 export async function GET() {
   const destinations = await prisma.webhookDestination.findMany({
@@ -17,7 +18,13 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ destinations });
+  return NextResponse.json({
+    destinations: destinations.map((d) => ({
+      ...d,
+      url: decrypt(d.url),
+      headers: JSON.parse(decrypt(d.headers)),
+    })),
+  });
 }
 
 export async function POST(request: NextRequest) {
@@ -32,10 +39,22 @@ export async function POST(request: NextRequest) {
     }
 
     const destination = await prisma.webhookDestination.create({
-      data: { name, type: type || "custom", url, headers: headers || {}, active: active ?? true },
+      data: {
+        name,
+        type: type || "custom",
+        url: encrypt(url),
+        headers: encrypt(JSON.stringify(headers || {})),
+        active: active ?? true,
+      },
     });
 
-    return NextResponse.json({ destination }, { status: 201 });
+    return NextResponse.json({
+      destination: {
+        ...destination,
+        url,
+        headers: headers || {},
+      },
+    }, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

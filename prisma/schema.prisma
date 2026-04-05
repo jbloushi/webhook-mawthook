@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -24,9 +24,9 @@ model WhatsAppAccount {
   phoneNumber     String
   phoneNumberId   String   @unique
   wabaId          String
-  accessToken     String
-  appSecret       String
-  verifyToken     String
+  accessToken     String   @db.Text
+  appSecret       String   @db.Text
+  verifyToken     String   @db.Text
   chatwootInboxId String?
   active          Boolean  @default(true)
   createdAt       DateTime @default(now())
@@ -42,8 +42,8 @@ model WebhookDestination {
   id        String   @id @default(uuid())
   name      String
   type      String   @default("custom")
-  url       String
-  headers   Json     @default("{}")
+  url       String   @db.Text
+  headers   String   @db.Text
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -77,8 +77,8 @@ model Message {
   toNumber       String?
   type           String
   content        Json
-  mediaLocalPath String?
-  mediaUrl       String?
+  mediaLocalPath String?  @db.Text
+  mediaUrl       String?  @db.Text
   status         String   @default("received")
   rawPayload     Json
   createdAt      DateTime @default(now())
@@ -98,8 +98,8 @@ model DeliveryAttempt {
   attemptNumber Int       @default(1)
   status        String
   statusCode    Int?
-  responseBody  String?
-  errorMessage  String?
+  responseBody  String?   @db.Text
+  errorMessage  String?   @db.Text
   nextRetryAt   DateTime?
   createdAt     DateTime  @default(now())
 

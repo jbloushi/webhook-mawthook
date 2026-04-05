@@ -4,9 +4,6 @@
  * Usage:
  *   node prisma/seed.mjs                          # uses defaults
  *   ADMIN_EMAIL=x ADMIN_PASSWORD=y node prisma/seed.mjs  # custom creds
- *
- * Inside Docker:
- *   docker compose exec app node prisma/seed.mjs
  */
 
 import "dotenv/config";
@@ -18,7 +15,7 @@ const prisma = new PrismaClient();
 
 if (!process.env.DATABASE_URL) {
   console.error("❌ Missing DATABASE_URL. Create/update .env before running seed.");
-  console.error('   Example: DATABASE_URL="postgresql://mawthook:password@127.0.0.1:5432/mawthook?schema=public"');
+  console.error('   Example: DATABASE_URL="mysql://mawthook:password@127.0.0.1:3306/mawthook"');
   process.exit(1);
 }
 

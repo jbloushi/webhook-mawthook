@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { encrypt } from "@/lib/encryption";
+import { encrypt, decrypt } from "@/lib/encryption";
 
 export async function GET(
   _request: NextRequest,
@@ -37,6 +37,7 @@ export async function GET(
   return NextResponse.json({
     account: {
       ...account,
+      verifyToken: decrypt(account.verifyToken),
       webhookUrl: `${appUrl}/api/webhook/${account.id}`,
     },
   });
